@@ -124,7 +124,7 @@ const SearchBar = props => {
     return (
         <form onSubmit={handleSubmit} className={`SearchBar ${customClass}`}>
             {/* State Input */}
-            <span className='inputWrapper' id="state">
+            <div className='inputWrapper' id="state">
                 <img src={location} />
                 <input 
                     type='text' 
@@ -140,10 +140,10 @@ const SearchBar = props => {
                 {showStateDropdown && filteredStates.length > 0 && (
                     <SearchPop locations={filteredStates} clickFunction={selectState} />
                 )}
-            </span>
+            </div>
 
             {/* City Input */}
-            <span className={`inputWrapper ${disableCityInput ? "disableCityInput" : ""}`} id="city">
+            <div className={`inputWrapper ${disableCityInput ? "disableCityInput" : ""}`} id="city">
                 <img src={fetchingCities ? loadingIcon : location} className={fetchingCities ? 'rotateLoad' : ''} />
                 <input 
                     type='text' 
@@ -163,7 +163,7 @@ const SearchBar = props => {
                 {showCityDropdown && filteredCities.length > 0 && (
                     <SearchPop locations={filteredCities} clickFunction={selectCity} />
                 )}
-            </span>
+            </div>
 
             {/* Search Button */}
             <Button 
