@@ -143,7 +143,7 @@ const SearchBar = props => {
             </div>
 
             {/* City Input */}
-            <span className={`inputWrapper ${disableCityInput ? "disableCityInput" : ""}`}>
+            <div className={`inputWrapper ${disableCityInput ? "disableCityInput" : ""}`} id="city">
                 <img src={fetchingCities ? loadingIcon : location} className={fetchingCities ? 'rotateLoad' : ''} />
                 <input 
                     type='text' 
@@ -163,7 +163,7 @@ const SearchBar = props => {
                 {showCityDropdown && filteredCities.length > 0 && (
                     <SearchPop locations={filteredCities} clickFunction={selectCity} />
                 )}
-            </span>
+            </div>
 
             {/* Search Button */}
             <Button 
