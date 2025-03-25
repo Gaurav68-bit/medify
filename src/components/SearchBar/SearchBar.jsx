@@ -124,7 +124,7 @@ const SearchBar = props => {
     return (
         <form onSubmit={handleSubmit} className={`SearchBar ${customClass}`}>
             {/* State Input */}
-            <span className='inputWrapper'>
+            <div className='inputWrapper' id="state">
                 <img src={location} />
                 <input 
                     type='text' 
@@ -140,7 +140,7 @@ const SearchBar = props => {
                 {showStateDropdown && filteredStates.length > 0 && (
                     <SearchPop locations={filteredStates} clickFunction={selectState} />
                 )}
-            </span>
+            </div>
 
             {/* City Input */}
             <span className={`inputWrapper ${disableCityInput ? "disableCityInput" : ""}`}>
