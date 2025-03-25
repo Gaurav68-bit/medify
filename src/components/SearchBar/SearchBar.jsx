@@ -1,195 +1,177 @@
-import React, { useContext, useEffect, useRef, useState } from 'react';
-import axios, { all } from 'axios';
+import React, { useContext, useEffect, useState } from 'react';
+import axios from 'axios';
+
 //styles
-import "./SearchBar.css"
-//assetes
-import searchIcon from "../../assets/search.svg"
-import location from "../../assets/location.svg"
+import "./SearchBar.css";
+
+//assets
+import searchIcon from "../../assets/search.svg";
+import location from "../../assets/location.svg";
 import loadingIcon from "../../assets/loading.svg";
+
 //components
 import Button from '../Button/Button';
-import { findLocations, findBookings } from '../../functions/functions';
 import SearchPop from './SearchPop';
-//components
+
+//contexts
 import { BookingsContext, FoundHospitalsContext } from '../../contexts/AllContexts';
 
-//apis
-const api = "https://meddata-backend.onrender.com";
-const allSates = ["Alabama","Alaska","Arizona","Arkansas","California","Colorado","Connecticut","Delaware","DC","Florida","Georgia","Hawaii","Idaho","Illinois","Indiana","Iowa","Kansas","Kentucky","Louisiana","Maine","Maryland","Massachusetts","Michigan","Minnesota","Mississippi","Missouri","Montana","Nebraska","Nevada","New Hampshire","New Jersey","New Mexico","New York","North Carolina","North Dakota","Ohio","Oklahoma","Oregon","Pennsylvania","PR","Rhode Island","South Carolina","South Dakota","Tennessee","Texas","Utah","Vermont","Virginia","Washington","West Virginia","Wisconsin","VI","Wyoming","AS","GU","MP"]
+//API Base URL
+const API_BASE = "https://meddata-backend.onrender.com";
 
 const SearchBar = props => {
-    //const
-    const { customClass, atBookingsPage, atHomePage } = props;
-    //contexts
-    const [bookings, setBookings] = useContext(BookingsContext)
-    const [foundHospitals, setFoundHospitals] = useContext(FoundHospitalsContext)
-    //states
+    const { customClass, atBookingsPage } = props;
+
+    // Contexts
+    const [bookings] = useContext(BookingsContext);
+    const [foundHospitals, setFoundHospitals] = useContext(FoundHospitalsContext);
+
+    // States
     const [stateName, setStateName] = useState("");
     const [cityName, setCityName] = useState("");
-    const [hospitalName, setHospitalName] = useState("");
+
+    const [statesList, setStatesList] = useState([]);
+    const [citiesList, setCitiesList] = useState([]);
+
     const [filteredStates, setFilteredStates] = useState([]);
-    const [allCities, setAllCities] = useState([]);
     const [filteredCities, setFilteredCities] = useState([]);
-    const [disableCityInput, setDisableCityInput] = useState(undefined);
-    const [filteredHospitals, setFilteredHospitals] = useState([]);
-    const [fetchingHospitals, setFetchingHospitals] = useState(false)
-    //refs
-    const stateName_onChange = useRef(false);
-    const cityName_onChange = useRef(false);
-    const fetchingCities = useRef(false);
-    //side effects
-    useEffect(()=> {
-        if(stateName_onChange.current) filterStatesFunc();
-    }, [stateName])
 
-    useEffect(()=> {
-        if(cityName_onChange.current) filterCitiesFunc();
-    }, [cityName])
+    const [disableCityInput, setDisableCityInput] = useState(true);
+    const [fetchingCities, setFetchingCities] = useState(false);
+    const [fetchingHospitals, setFetchingHospitals] = useState(false);
 
-    useEffect(() => {
-        filterBookingsFunc();
-    }, [hospitalName])
+    const [showStateDropdown, setShowStateDropdown] = useState(false);
+    const [showCityDropdown, setShowCityDropdown] = useState(false);
 
-    //functions
-    const handleSubmit = async event => {
-        event.preventDefault();
-        
-        // if(atBookingsPage) return filterBookingsFunc();
-
-        getLocationData("hospitals")
-        
-    }
-
-    const getLocationData = async (dataType, location) => {
-        if(dataType == "cities"){
-            fetchingCities.current = true;
-            const cities = await axios.get(`${api}/cities/${location}`);
-            setAllCities(cities.data);
-            fetchingCities.current = false;
-            setDisableCityInput(undefined);
+    // Fetch states when input is focused
+    const fetchStates = async () => {
+        if (statesList.length === 0) {
+            try {
+                const response = await axios.get(`${API_BASE}/states`);
+                setStatesList(response.data);
+                setFilteredStates(response.data);
+            } catch (error) {
+                console.error("Error fetching states:", error);
+            }
+        } else {
+            setFilteredStates(statesList);
         }
-        if(dataType === "hospitals"){
-            setFetchingHospitals(true);
-            const hospitals = await axios.get(`${api}/data?state=${stateName}&city=${cityName}`);
-            setFoundHospitals({hospitals: hospitals.data, cityName, stateName});
-            setFetchingHospitals(false);
+        setShowStateDropdown(true);  // Show the dropdown when input is focused
+    };
+
+    // Fetch cities when state is selected
+    const fetchCities = async (state) => {
+        setFetchingCities(true);
+        setDisableCityInput(true);
+        try {
+            const response = await axios.get(`${API_BASE}/cities/${state}`);
+            setCitiesList(response.data);
+            setFilteredCities(response.data);
+            setDisableCityInput(false);
+        } catch (error) {
+            console.error("Error fetching cities:", error);
         }
-    }
-    const handleChange = event => {
-        const {value, name} = event.target;
-        
-        if(name === "state"){
-            stateName_onChange.current = true;
-            setStateName(value)
-            setDisableCityInput("disableCityInput");
-            cityName_onChange.current = false;
-            setCityName("")
+        setFetchingCities(false);
+    };
+
+    // Handle input change
+    const handleChange = (event) => {
+        const { value, name } = event.target;
+
+        if (name === "state") {
+            setStateName(value);
+            setFilteredStates(statesList.filter(state => state.toLowerCase().includes(value.toLowerCase())));
+            setShowStateDropdown(true);
         }
 
-        if(name === "city"){
-            cityName_onChange.current = true;
-            setCityName(value)
+        if (name === "city") {
+            setCityName(value);
+            setFilteredCities(citiesList.filter(city => city.toLowerCase().includes(value.toLowerCase())));
+            setShowCityDropdown(true);
         }
+    };
 
-        if(name === "hospitalName"){
-            setHospitalName(value);
-        }
-    }
-    const filterStatesFunc = () => {
-        
-        let foundStates = findLocations(allSates, stateName);
-        setFilteredStates(foundStates);
-    }
-
-    const filterCitiesFunc = () => {
-        
-        let foundCities = findLocations(allCities, cityName);
-        setFilteredCities(foundCities);
-    }
-
-    const filterBookingsFunc = () => {
-        
-        let hospitals = findBookings(bookings, hospitalName);
-        // console.log(hospitals);
-        setFilteredHospitals(hospitals);
-    }
-
-    const clickStateSuggestions = (nameOfState) => {
+    // Handle selection of a state from dropdown
+    const selectState = (state) => {
+        setStateName(state);
         setFilteredStates([]);
-        stateName_onChange.current = false;
-        
-        setStateName(nameOfState)
+        setShowStateDropdown(false);
+        fetchCities(state);
+    };
 
-        getLocationData("cities", nameOfState);
-    }
-    const clickCitySuggetions = (nameOfCity) => {
+    // Handle selection of a city from dropdown
+    const selectCity = (city) => {
+        setCityName(city);
         setFilteredCities([]);
-        cityName_onChange.current = false;
-        
-        setCityName(nameOfCity)
-    }
+        setShowCityDropdown(false);
+    };
 
-    const displayInputs = () => {
-        if(atBookingsPage){
-            return (
-            <span className='inputWrapper'>
-                <img src={location}/>
-                <input 
-                type='text' 
-                value={hospitalName} 
-                name='hospitalName' 
-                onChange={handleChange}
-                placeholder='Search By Hospital'
-                id='hospitalName'
-                required
-                />
-                <SearchPop atBookingsPage={true} hospitals={filteredHospitals} clickFunction={clickStateSuggestions}/>
-            </span>
-        )
-    }
-        return( 
-            <>
-            <span className='inputWrapper'>
-                <img src={location}/>
-                <input 
-                type='text' 
-                value={stateName} 
-                name='state' 
-                onChange={handleChange}
-                placeholder='state'
-                id='state'
-                required
-                />
-                <SearchPop locations={filteredStates} clickFunction={clickStateSuggestions}/>
-            </span>
-            
-            <span className={`inputWrapper ${disableCityInput}`}>
-                <img src={fetchingCities.current ? loadingIcon : location} className={fetchingCities.current ? 'rotateLoad' : null}/>
-                <input 
-                type='text' 
-                value={cityName} 
-                name='city' 
-                onChange={handleChange}
-                placeholder={fetchingCities.current ? "Fetching cities..." :'city'}
-                required
-                disabled={displayInputs ? false : true}
-                />
-                <SearchPop locations={filteredCities} clickFunction={clickCitySuggetions}/>
-            </span>
-            </>
-        )
-    }
+    // Handle form submission
+    const handleSubmit = async (event) => {
+        event.preventDefault();
+        if (atBookingsPage) return;
+
+        setFetchingHospitals(true);
+        try {
+            const response = await axios.get(`${API_BASE}/data?state=${stateName}&city=${cityName}`);
+            setFoundHospitals({ hospitals: response.data, cityName, stateName });
+        } catch (error) {
+            console.error("Error fetching hospitals:", error);
+        }
+        setFetchingHospitals(false);
+    };
 
     return (
         <form onSubmit={handleSubmit} className={`SearchBar ${customClass}`}>
-            {displayInputs()}
+            {/* State Input */}
+            <span className='inputWrapper'>
+                <img src={location} />
+                <input 
+                    type='text' 
+                    value={stateName} 
+                    name='state' 
+                    onChange={handleChange}
+                    onFocus={fetchStates}
+                    onBlur={() => setTimeout(() => setShowStateDropdown(false), 200)}
+                    placeholder='State'
+                    required
+                />
+                {/* Dropdown for States */}
+                {showStateDropdown && filteredStates.length > 0 && (
+                    <SearchPop locations={filteredStates} clickFunction={selectState} />
+                )}
+            </span>
 
+            {/* City Input */}
+            <span className={`inputWrapper ${disableCityInput ? "disableCityInput" : ""}`}>
+                <img src={fetchingCities ? loadingIcon : location} className={fetchingCities ? 'rotateLoad' : ''} />
+                <input 
+                    type='text' 
+                    value={cityName} 
+                    name='city' 
+                    onChange={handleChange}
+                    onFocus={() => { 
+                        if (citiesList.length === 0) fetchCities(stateName);
+                        setShowCityDropdown(true);
+                    }}
+                    onBlur={() => setTimeout(() => setShowCityDropdown(false), 200)}
+                    placeholder={fetchingCities ? "Fetching cities..." : 'City'}
+                    required
+                    disabled={disableCityInput}
+                />
+                {/* Dropdown for Cities */}
+                {showCityDropdown && filteredCities.length > 0 && (
+                    <SearchPop locations={filteredCities} clickFunction={selectCity} />
+                )}
+            </span>
+
+            {/* Search Button */}
             <Button 
-            formSubmit="true" 
-            text={fetchingHospitals ? "Fetching..." : "search" }
-            icon={fetchingHospitals ? loadingIcon : searchIcon} 
-            buttonClass={"longButton"}
-            rotateIcon={fetchingHospitals ? true : false}
+                formSubmit="true" 
+                text={fetchingHospitals ? "Fetching..." : "Search"}
+                icon={fetchingHospitals ? loadingIcon : searchIcon} 
+                buttonClass={"longButton"}
+                rotateIcon={fetchingHospitals}
             />
         </form>
     );
